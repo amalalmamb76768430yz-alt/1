@@ -289,13 +289,10 @@
     };
   }
 
-  window.ExaAuth = {
-    fullPhone: fullPhone,
-    readPhoneFromPage: readPhoneFromPage,
-    registerWithInvite: registerWithInvite,
-    loginWithPhone: loginWithPhone,
-    ensureSupabaseUserId: ensureSupabaseUserId,
-    getCurrentUserProfile: getCurrentUserProfile,
-    logout: logout
-  };
+const { data, error } = await supabase.rpc("register_user", {
+  p_phone: phoneFull,
+  p_invite_code: invCode
+});
+
+if (error) throw error;
 })();

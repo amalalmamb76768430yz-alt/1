@@ -718,5 +718,25 @@ document.addEventListener("DOMContentLoaded", function () {
 <script src="auth.js"></script>
 <!-- Enforce login redirects on protected pages -->
 <script src="common-nav.js"></script>
+<script type="module" src="./auth.js"></script>
+<script type="module">
+import { signUp } from "./auth.js";
+
+document.querySelector("form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const phone = document.querySelector("#phone").value;
+    const password = document.querySelector("#password").value;
+    const invite = document.querySelector("#invite").value;
+
+    try {
+        await signUp(phone, password, invite);
+        alert("Account created successfully");
+        window.location.href = "login.html";
+    } catch (err) {
+        alert(err.message);
+    }
+});
+</script>
 </body>
 </html>

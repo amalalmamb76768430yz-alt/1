@@ -2,33 +2,29 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<title>Sign Up</title>
-<script>
-  window.SUPABASE_URL = "https://tngvhezfvgqnouzoyggr.supabase.co";
-  window.SUPABASE_ANON_KEY = "REPLACE_WITH_YOUR_KEY";
-</script>
-<script type="module" src="./auth.js"></script>
+  <meta charset="UTF-8" />
+  <title>Sign Up</title>
 </head>
 <body>
-<script>
-async function submitSignup() {
-  const phone = document.getElementById("phone").value;
-  const password = document.getElementById("password").value;
-  const invite = document.getElementById("invite").value;
+  <input id="phone" placeholder="Phone" />
+  <input id="password" type="password" placeholder="Password" />
+  <input id="invite" placeholder="Invite code" />
+  <button id="signupBtn">Sign Up</button>
 
-  const res = await window.Auth.signUp(phone, password, invite);
-  if (res.error) {
-    alert(res.error.message);
-  } else {
-    alert("Account created");
-  }
-}
-</script>
+  <script type="module">
+    import { signup } from './auth.js'
 
-<input id="phone" placeholder="Phone" />
-<input id="password" type="password" placeholder="Password" />
-<input id="invite" placeholder="Invite code" />
-<button onclick="submitSignup()">Sign Up</button>
+    document.getElementById('signupBtn').onclick = async () => {
+      const phone = document.getElementById('phone').value
+      const password = document.getElementById('password').value
+      const invite = document.getElementById('invite').value
+      try {
+        await signup(phone, password, invite)
+        alert('Success')
+      } catch (e) {
+        alert(e.message)
+      }
+    }
+  </script>
 </body>
 </html>

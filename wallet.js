@@ -1,92 +1,95 @@
-// ===============================
-// WALLET CORE FUNCTIONS
-// ===============================
+// wallet.js - RPC-first wallet + AI Power helpers for your Supabase schema
+;(function () {
+  'use strict';
 
-async function getWallet(userId) {
-  const { data, error } = await App.supabase
-    .from("wallets")
-    .select("*")
-    .eq("user_id", userId)
-    .single();
+  var SB = window.SB_CONFIG;
+  if (!SB) {
+    console.error('SB_CONFIG is not defined. Ensure sb-config.js is loaded first.');
+    return;
+  }
 
-  if (error) return null;
-  return data;
-}
+  var USER_ID_KEY = 'sb_user_id_v1';
 
-async function createWalletIfNotExists(userId) {
-  const wallet = await getWallet(userId);
-  if (wallet) return wallet;
+  function getUserId() {
+    try { return (localStorage.getItem(USER_ID_KEY) || '').trim(); } catch (e) { return ''; }
+  }
 
-  const { data, error } = await App.supabase
-    .from("wallets")
-    .insert({
-      user_id: userId,
-      balance: 0
-    })
-    .select()
-    .single();
+  function fmtUSDT(n) {
+    var x = Number(n);
+    if (!isFinite(x)) x = 0;
+    return x.toFixed(2) + ' USDT';
+  }
 
-  if (error) return null;
-  return data;
-}
+  async function rpc(fnName, payload) {
+    var url = SB.url.replace(/\/$/, '') + '/rest/v1/rpc/' + encodeURIComponent(fnName);
+    var res = await fetch(url, {
+      method: 'POST',
+      headers: SB.headers(),
+      body: JSON.stringify(payload || {})
+    });
+    var text = await res.text();
+    var data;
+    try { data = text ? JSON.parse(text) : null; } catch (e) { data = text; }
 
-async function addBalance(userId, amount, reason = "system") {
-  const wallet = await createWalletIfNotExists(userId);
-  if (!wallet) return false;
+    if (!res.ok) {
+      // Try to surface a helpful message
+      var msg = (data && (data.message || data.error || data.details)) ? (data.message || data.error || data.details) : ('RPC ' + fnName + ' failed');
+      var err = new Error(msg);
+      err.status = res.status;
+      err.payload = data;
+      throw err;
+    }
+    return data;
+  }
 
-  const newBalance = Number(wallet.balance) + Number(amount);
+  async function getAssetsSummary(userId) {
+    var uid = userId || getUserId();
+    if (!uid) throw new Error('Missing user session');
+    // Function returns a single row object
+    return await rpc('get_assets_summary', { p_user: uid });
+  }
 
-  const { error } = await App.supabase
-    .from("wallets")
-    .update({ balance: newBalance })
-    .eq("user_id", userId);
+  async function performIpowerAction(userId) {
+    var uid = userId || getUserId();
+    if (!uid) throw new Error('Missing user session');
+    // perform_ipower_action is a set-returning function -> array of rows
+    var rows = await rpc('perform_ipower_action', { p_user: uid });
+    if (Array.isArray(rows)) return rows[0] || null;
+    return rows;
+  }
 
-  if (error) return false;
+  async function requestWithdrawal(opts) {
+    opts = opts || {};
+    var uid = opts.user_id || getUserId();
+    if (!uid) throw new Error('Missing user session');
 
-  await App.supabase.from("transactions").insert({
-    user_id: userId,
-    amount: amount,
-    type: "credit",
-    status: "completed",
-    description: reason
-  });
+    return await rpc('request_withdrawal', {
+      p_user: uid,
+      p_amount: Number(opts.amount || 0),
+      p_currency: String(opts.currency || 'usdt'),
+      p_network: String(opts.network || 'bep20'),
+      p_address: String(opts.address || '').trim()
+    });
+  }
 
-  return true;
-}
+  async function getUserState(userId) {
+    var uid = userId || getUserId();
+    if (!uid) throw new Error('Missing user session');
 
-async function subtractBalance(userId, amount, reason = "system") {
-  const wallet = await getWallet(userId);
-  if (!wallet) return false;
+    var url = SB.url.replace(/\/$/, '') + '/rest/v1/user_state?select=current_level,is_locked,is_funded,is_activated&user_id=eq.' + encodeURIComponent(uid) + '&limit=1';
+    var res = await fetch(url, { method: 'GET', headers: SB.headers() });
+    if (!res.ok) return null;
+    var rows = await res.json();
+    return (Array.isArray(rows) && rows[0]) ? rows[0] : null;
+  }
 
-  if (Number(wallet.balance) < Number(amount)) return false;
-
-  const newBalance = Number(wallet.balance) - Number(amount);
-
-  const { error } = await App.supabase
-    .from("wallets")
-    .update({ balance: newBalance })
-    .eq("user_id", userId);
-
-  if (error) return false;
-
-  await App.supabase.from("transactions").insert({
-    user_id: userId,
-    amount: amount,
-    type: "debit",
-    status: "completed",
-    description: reason
-  });
-
-  return true;
-}
-
-// ===============================
-// EXPORT
-// ===============================
-
-window.Wallet = {
-  getWallet,
-  createWalletIfNotExists,
-  addBalance,
-  subtractBalance
-};
+  window.DemoWallet = {
+    getUserId: getUserId,
+    fmtUSDT: fmtUSDT,
+    rpc: rpc,
+    getAssetsSummary: getAssetsSummary,
+    performIpowerAction: performIpowerAction,
+    requestWithdrawal: requestWithdrawal,
+    getUserState: getUserState
+  };
+})();

@@ -7,10 +7,17 @@ window.ExaAuth = {
       p_invite_code: usedInviteCode
     });
 
-    if (error) {
-      throw error;
+    if (error) throw error;
+
+    // حفظ المستخدم محليًا
+    if (data && data.user_id) {
+      localStorage.setItem("currentUserId", data.user_id);
     }
 
     return data;
+  },
+
+  async ensureSupabaseUserId() {
+    return localStorage.getItem("currentUserId");
   }
 };

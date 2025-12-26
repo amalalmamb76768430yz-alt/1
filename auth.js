@@ -1,15 +1,13 @@
-import { supabase } from "./sb-config.js";
 
-export async function login(phone, password) {
-  const { error } = await supabase.auth.signInWithPassword({
-    phone,
-    password
-  });
+window.ExaAuth = {
+  async registerWithInvite({ phone, usedInviteCode }) {
+    const { data, error } = await supabase.auth.signUp({
+      phone: phone,
+      password: Math.random().toString(36).slice(2) + "Aa1!"
+    });
 
-  if (error) {
-    alert(error.message);
-    return;
+    if (error) throw error;
+
+    return data.user;
   }
-
-  window.location.href = "account-information.html";
-}
+};

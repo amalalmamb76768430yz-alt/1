@@ -2,39 +2,33 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Sign Up</title>
+<meta charset="UTF-8" />
+<title>Sign Up</title>
+<script>
+  window.SUPABASE_URL = "https://tngvhezfvgqnouzoyggr.supabase.co";
+  window.SUPABASE_ANON_KEY = "REPLACE_WITH_YOUR_KEY";
+</script>
+<script type="module" src="./auth.js"></script>
 </head>
 <body>
+<script>
+async function submitSignup() {
+  const phone = document.getElementById("phone").value;
+  const password = document.getElementById("password").value;
+  const invite = document.getElementById("invite").value;
 
-<input id="phone-input" placeholder="Phone" />
-<input id="password-input" type="password" placeholder="Password" />
-<input id="confirm-password-input" type="password" placeholder="Confirm Password" />
-<input id="invitation-code-input" placeholder="Invite Code" />
-<button class="sign-up-btn">Sign Up</button>
-
-<script type="module">
-import { signUp } from "./auth.js";
-
-document.querySelector(".sign-up-btn").addEventListener("click", async () => {
-  const phone = document.getElementById("phone-input").value;
-  const password = document.getElementById("password-input").value;
-  const confirm = document.getElementById("confirm-password-input").value;
-  const invite = document.getElementById("invitation-code-input").value;
-
-  if (password !== confirm) {
-    alert("Passwords do not match");
-    return;
+  const res = await window.Auth.signUp(phone, password, invite);
+  if (res.error) {
+    alert(res.error.message);
+  } else {
+    alert("Account created");
   }
-
-  try {
-    await signUp(phone, password, invite);
-    window.location.href = "my-assets.html";
-  } catch (e) {
-    alert(e.message);
-  }
-});
+}
 </script>
 
+<input id="phone" placeholder="Phone" />
+<input id="password" type="password" placeholder="Password" />
+<input id="invite" placeholder="Invite code" />
+<button onclick="submitSignup()">Sign Up</button>
 </body>
 </html>

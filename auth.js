@@ -1,25 +1,47 @@
 
+// auth.js - FIXED (no UI changes)
+
 import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm";
 
-export const supabase = createClient(
-  "https://tngvhezfvgqnouzoyggr.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRuZ3ZoZXpmdmdxbm91em95Z2dyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjY2Nzc3NTQsImV4cCI6MjA4MjI1Mzc1NH0.uUtcsfrid_QUZhiPELtgscQNJ4kl6l3n9RsH5kR2CvY"
-);
+const SUPABASE_URL = window.SUPABASE_URL;
+const SUPABASE_KEY = window.SUPABASE_ANON_KEY;
 
-export async function signUp(phone, password, inviteCode) {
-  const { data, error } = await supabase.auth.signUp({
-    phone,
-    password
-  });
-
-  if (error) throw error;
-
-  await supabase.from("users").insert({
-    id: data.user.id,
-    phone: phone,
-    invite_code: inviteCode,
-    is_active: true
-  });
-
-  return data.user;
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error("Supabase credentials missing");
 }
+
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+window.Auth = {
+  async signUp(phone, password, inviteCode) {
+    const { data, error } = await supabase.auth.signUp({
+      phone,
+      password
+    });
+
+    if (error) return { error };
+
+    if (inviteCode) {
+      await supabase.from("invitations").insert({
+        inviter_code: inviteCode,
+        invited_user_id: data.user.id
+      });
+    }
+
+    return { user: data.user };
+  },
+
+  async login(phone, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      phone,
+      password
+    });
+    if (error) return { error };
+    return { user: data.user };
+  },
+
+  async getUser() {
+    const { data } = await supabase.auth.getUser();
+    return data?.user;
+  }
+};
